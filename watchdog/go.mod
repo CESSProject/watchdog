@@ -5,7 +5,7 @@ go 1.22
 toolchain go1.22.3
 
 require (
-	github.com/CESSProject/cess-go-sdk v0.7.1-0.20250121091655-a20091f02829
+	github.com/CESSProject/cess-go-sdk v0.7.1-0.20250212080834-a5ec5485c83e
 	github.com/centrifuge/go-substrate-rpc-client/v4 v4.2.1
 	github.com/docker/docker v24.0.7+incompatible
 	github.com/gin-gonic/gin v1.10.0
