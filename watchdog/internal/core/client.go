@@ -177,7 +177,7 @@ func (cli *WatchdogClient) start(conf model.YamlConfig) error {
 	for _, miner := range cli.MinerInfoMap {
 		// scan server can be overloaded when request frequently
 		sleepAFewSeconds()
-		if minerStat, err := cli.SetChainData(miner.SignatureAcc, interval, miner.SignatureAcc, miner.CInfo.Created); err != nil {
+		if minerStat, err := cli.SetChainData(miner.SignatureAcc, interval, miner.CInfo.Created); err != nil {
 			errChan <- err
 		} else {
 			if _, exists := cli.MinerInfoMap[miner.SignatureAcc]; exists {
