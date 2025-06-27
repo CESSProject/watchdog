@@ -1,7 +1,7 @@
 package core
 
 import (
-	"fmt"
+	"github.com/CESSProject/cess-go-sdk/chain"
 	"github.com/CESSProject/cess-go-sdk/utils"
 	"github.com/CESSProject/watchdog/constant"
 	"github.com/CESSProject/watchdog/internal/log"
@@ -15,7 +15,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (cli *WatchdogClient) SetChainData(signatureAcc string, interval int, created int64) (model.MinerStat, error) {
+func (cli *WatchdogClient) SetChainData(signatureAcc string, created int64) (model.MinerStat, error) {
 	var stat model.MinerStat
 	hostIP := cli.Host
 	if hostIP == "" {
@@ -56,34 +56,8 @@ func (cli *WatchdogClient) SetChainData(signatureAcc string, interval int, creat
 	stat.TotalReward = util.BigNumConversion(types.U128(reward.TotalReward))
 	stat.RewardIssued = util.BigNumConversion(types.U128(reward.RewardIssued))
 
-	latestBlockNum := int(latestBlockNumberUint32)
-	blockUncheckNum := interval / constant.GenBlockInterval
-	latestUncheckBlockNum := latestBlockNum - blockUncheckNum
+	stat.LatestPunishInfo = getMinerPunishInfo(GlobalBlockDataManager.BlockDataList, signatureAcc)
 
-	scanApiUrl := fmt.Sprintf("%s/sminer/punishment?Acc=%s&pageindex=1&pagesize=1", constant.ScanApiUrl, signatureAcc)
-	var response model.PunishSminerResponse
-
-	err = cli.HTTPClient.Get(scanApiUrl, &response)
-	if err != nil {
-		log.Logger.Errorf("%s %s failed to query punishment from scan api", hostIP, signatureAcc)
-		return stat, err
-	}
-	if response.Data.Count > 0 {
-		scanApiUrl = fmt.Sprintf("%s/sminer/punishment?Acc=%s&pageindex=%d&pagesize=1", constant.ScanApiUrl, signatureAcc, response.Data.Count)
-		err = cli.HTTPClient.Get(scanApiUrl, &response)
-		if err != nil {
-			log.Logger.Errorf("%s %s failed to query punishment from scan api server", hostIP, signatureAcc)
-			return stat, err
-		}
-		stat.LatestPunishInfo = response.Data.Content[0]
-		if int(stat.LatestPunishInfo.BlockId) >= latestUncheckBlockNum {
-			alertType := constant.SvcProofResIncorrect
-			if stat.LatestPunishInfo.Type == 1 {
-				alertType = constant.NoSubmitSvcProof
-			}
-			go alert(hostIP, signatureAcc, alertType, signatureAcc, stat.LatestPunishInfo.ExtrinsicHash, stat.LatestPunishInfo.BlockId)
-		}
-	}
 	return stat, nil
 }
 
@@ -145,4 +119,26 @@ func alert(hostIP string, miner string, alertType string, signatureAcc string, e
 	}()
 
 	wg.Wait()
+}
+
+func getMinerPunishInfo(blockDataList []chain.BlockData, signatureAcc string) []model.PunishSminerData {
+	var latestPunishInfo []model.PunishSminerData
+	for _, blockData := range blockDataList {
+		for _, punish := range blockData.Punishment {
+			if punish.From == signatureAcc {
+				punishData := model.PunishSminerData{
+					BlockId:       blockData.BlockId,
+					ExtrinsicHash: punish.ExtrinsicHash,
+					ExtrinsicName: punish.ExtrinsicName,
+					BlockHash:     blockData.BlockHash,
+					Account:       punish.From,
+					RecvAccount:   punish.To,
+					Amount:        punish.Amount,
+					Timestamp:     blockData.Timestamp,
+				}
+				latestPunishInfo = append(latestPunishInfo, punishData)
+			}
+		}
+	}
+	return latestPunishInfo
 }

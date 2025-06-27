@@ -70,7 +70,7 @@ func NewClient(host model.HostItem) (*Client, error) {
 func (cli *Client) ListContainers(ctx context.Context, host string) ([]model.Container, error) {
 	list, err := cli.dockerCli.ContainerList(ctx, types.ContainerListOptions{})
 	if err != nil {
-		go NormalAlert(host, "Fail to call list container api from docker daemon")
+		go NormalAlert(host, "Failed to call list container api from docker daemon")
 		return nil, err
 	}
 	containers := make([]model.Container, len(list))
@@ -100,14 +100,14 @@ func (cli *Client) ListContainers(ctx context.Context, host string) ([]model.Con
 func (cli *Client) SetContainerStats(ctx context.Context, cid string, host string) (model.ContainerStat, error) {
 	response, err := cli.dockerCli.ContainerStats(ctx, cid, false)
 	if err != nil {
-		log.Logger.Errorf("Fail to get container stats: %v", err)
-		go NormalAlert(host, "Fail to call container stats api from docker daemon")
+		log.Logger.Errorf("Failed to get container stats: %v", err)
+		go NormalAlert(host, "Failed to call container stats api from docker daemon")
 		return model.ContainerStat{}, nil
 	}
 	defer func(Body io.ReadCloser) {
 		err = Body.Close()
 		if err != nil {
-			log.Logger.Errorf("Fail to close io reader: %v", err)
+			log.Logger.Errorf("Failed to close io reader: %v", err)
 		}
 	}(response.Body)
 	var v *types.StatsJSON
@@ -151,12 +151,12 @@ func calculateCPUPercentUnix(v *types.StatsJSON) string {
 func (cli *Client) ExeCommand(ctx context.Context, cid string, config types.ExecConfig, host string) ([]byte, error) {
 	execId, err := cli.dockerCli.ContainerExecCreate(ctx, cid, config)
 	if err != nil {
-		go NormalAlert(host, "Fail to call exec api from docker daemon")
+		go NormalAlert(host, "Failed to call exec api from docker daemon")
 		return nil, errors.Wrap(err, "exe cmd in container error")
 	}
 	resp, err := cli.dockerCli.ContainerExecAttach(ctx, execId.ID, types.ExecStartCheck{})
 	if err != nil {
-		go NormalAlert(host, "Fail to call exec api from docker daemon")
+		go NormalAlert(host, "Failed to call exec api from docker daemon")
 		return nil, errors.Wrap(err, "exe cmd in container error")
 	}
 	defer resp.Close()

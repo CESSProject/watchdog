@@ -87,8 +87,8 @@ func setConfig(c *gin.Context) {
 	}
 	configTemp, err := util.LoadConfigFile(constant.ConfPath)
 	if err != nil {
-		log.Logger.Errorf("Fail to load %s", constant.ConfPath)
-		c.JSON(http.StatusInternalServerError, gin.H{"message": fmt.Sprintf("Fail to load config file from %s", constant.ConfPath)})
+		log.Logger.Errorf("Failed to load %s", constant.ConfPath)
+		c.JSON(http.StatusInternalServerError, gin.H{"message": fmt.Sprintf("Failed to load config file from %s", constant.ConfPath)})
 		return
 	}
 	// remove old config
@@ -102,8 +102,8 @@ func setConfig(c *gin.Context) {
 	util.AddFields(configTemp, newConfig)
 	err = util.SaveConfigFile(constant.ConfPath, configTemp)
 	if err != nil {
-		log.Logger.Errorf("Fail to save file to: %v", constant.ConfPath)
-		c.JSON(http.StatusInternalServerError, gin.H{"message": fmt.Sprintf("Fail to save config file to %s", constant.ConfPath)})
+		log.Logger.Errorf("Failed to save file to: %v", constant.ConfPath)
+		c.JSON(http.StatusInternalServerError, gin.H{"message": fmt.Sprintf("Failed to save config file to %s", constant.ConfPath)})
 		return
 	}
 	log.Logger.Infof("Save new config %v to: %s", configTemp, constant.ConfPath)
@@ -160,14 +160,14 @@ func setToggle(c *gin.Context) {
 	conf.Alert.Enable = alertToggle.Status
 	data, err := yaml.Marshal(conf)
 	if err != nil {
-		log.Logger.Errorf("Fail to parse conf: %v", conf)
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Fail to parse conf"})
+		log.Logger.Errorf("Failed to parse conf: %v", conf)
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to parse conf"})
 		return
 	}
 	err = os.WriteFile(constant.ConfPath, data, 0644)
 	if err != nil {
-		log.Logger.Errorf("Fail to save file to: %v", constant.ConfPath)
-		c.JSON(http.StatusInternalServerError, gin.H{"message": fmt.Sprintf("Fail to save config file to %s", constant.ConfPath)})
+		log.Logger.Errorf("Failed to save file to: %v", constant.ConfPath)
+		c.JSON(http.StatusInternalServerError, gin.H{"message": fmt.Sprintf("Failed to save config file to %s", constant.ConfPath)})
 		return
 	}
 	core.CustomConfig.Alert.Enable = alertToggle.Status
@@ -283,7 +283,7 @@ func runWithNewConf() {
 			}
 			err = core.RunWatchdogClients(core.CustomConfig)
 			if err != nil {
-				log.Logger.Fatalf("Fail to run with new clients: %v", err)
+				log.Logger.Fatalf("Failed to run with new clients: %v", err)
 			}
 			break
 		} else {
@@ -292,7 +292,7 @@ func runWithNewConf() {
 		try++
 		time.Sleep(time.Duration(5) * time.Second)
 	}
-	log.Logger.Info("Run with new config success")
+	log.Logger.Info("Run with new config successfully")
 }
 
 func canProceed() bool {

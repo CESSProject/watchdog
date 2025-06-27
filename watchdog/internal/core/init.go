@@ -34,7 +34,7 @@ func Run() {
 	}
 	err = RunWatchdogClients(CustomConfig)
 	if err != nil {
-		log.Logger.Fatalf("Run CESS Node Monitor failed: %v", err)
+		log.Logger.Fatalf("Run CESS Storage Monitor failed: %v", err)
 		return
 	}
 }
