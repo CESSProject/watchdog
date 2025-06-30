@@ -118,6 +118,7 @@ func (bdm *BlockDataManager) initialQueuePopulation() error {
 	bdm.mutex.Lock()
 	defer bdm.mutex.Unlock()
 
+	log.Logger.Infof("start to fetch block data from %s", bdm.chainClient.CessClient.GetCurrentRpcAddr())
 	for i := startBlockNum; i <= int64(latestBlockNum); i++ {
 		blockNum := uint64(i)
 		data, err := bdm.chainClient.CessClient.ParseBlockData(blockNum)
@@ -128,6 +129,9 @@ func (bdm *BlockDataManager) initialQueuePopulation() error {
 
 		bdm.BlockDataList = append(bdm.BlockDataList, data)
 		bdm.blockDataMap[blockNum] = true
+		if i%100 == 0 {
+			log.Logger.Infof("Fetch block data from %s, current block num %d", bdm.chainClient.CessClient.GetCurrentRpcAddr(), i)
+		}
 	}
 
 	bdm.initialized = true
@@ -140,6 +144,7 @@ func (bdm *BlockDataManager) initialQueuePopulation() error {
 func (bdm *BlockDataManager) watchNewBlocks() {
 	// Wait for initial population to complete
 	for !bdm.initialized {
+		log.Logger.Info("Waiting for initial population to complete...")
 		time.Sleep(constant.GenBlockInterval * time.Second)
 	}
 
@@ -294,6 +299,7 @@ func RunWatchdogClients(conf model.YamlConfig) error {
 
 func (cli *WatchdogClient) RunWatchdogClient(conf model.YamlConfig) {
 	for cli.Active {
+		log.Logger.Info("Start to run watchdog client")
 		if err := cli.start(conf); err != nil {
 			log.Logger.Warnf("Error when start %s watchdog client %v", cli.Host, err)
 		}
@@ -303,7 +309,7 @@ func (cli *WatchdogClient) RunWatchdogClient(conf model.YamlConfig) {
 
 func (cli *WatchdogClient) start(conf model.YamlConfig) error {
 	// Make sure each client does not start at the same time to prevent from being overloaded
-	sleepAFewSeconds()
+	SleepAFewSeconds()
 	cli.Updating = true
 	defer func() { cli.Updating = false }()
 	ctx := context.Background()
@@ -344,6 +350,7 @@ func (cli *WatchdogClient) start(conf model.YamlConfig) error {
 		setContainersDataWG.Add(1)
 		go func(container model.Container) {
 			defer setContainersDataWG.Done()
+			// send alert by webhook when parse config file failed
 			if err := cli.setMinerInfoMapItem(ctx, container, cli.Host); err != nil {
 				errChan <- err
 			}
@@ -357,6 +364,7 @@ func (cli *WatchdogClient) start(conf model.YamlConfig) error {
 		setContainersStatsDataWG.Add(1)
 		go func(m *MinerInfo) {
 			defer setContainersStatsDataWG.Done()
+			// send alert by webhook when get container stats failed
 			if res, err := cli.SetContainerStats(ctx, m.CInfo.ID, cli.Host); err != nil {
 				errChan <- err
 			} else {
@@ -370,7 +378,8 @@ func (cli *WatchdogClient) start(conf model.YamlConfig) error {
 
 	// Set miner's info on chain
 	for _, miner := range cli.MinerInfoMap {
-		sleepAFewSeconds()
+		SleepAFewSeconds()
+		// send alert by webhook and email when storage node get punishment
 		if minerStat, err := cli.SetChainData(miner.SignatureAcc, miner.CInfo.Created); err != nil {
 			errChan <- err
 		} else {
@@ -387,7 +396,7 @@ func (cli *WatchdogClient) start(conf model.YamlConfig) error {
 	return nil
 }
 
-func sleepAFewSeconds() {
+func SleepAFewSeconds() {
 	source := rand.NewSource(time.Now().UnixNano())
 	r := rand.New(source)
 	sleepDuration := r.Intn(10) + 1
@@ -424,8 +433,9 @@ func (cli *WatchdogClient) setMinerInfoMapItem(ctx context.Context, cinfo model.
 
 	conf, err := util.ParseMinerConfigFile(res[8:]) // Skip header bytes (0-7)
 	if err != nil {
-		go NormalAlert(hostIp, fmt.Sprintf("Please check miner: %s disk status", cinfo.Name))
-		log.Logger.Errorf("Failed to parse storage node config file for container %s: %v", cinfo.Name, err)
+		SleepAFewSeconds() // avoid webhook/smtp server api request limit
+		log.Logger.Errorf("Failed to parse storage node config file for container %s: %v on host: %s", cinfo.ID, err, cli.Host)
+		go doAlert(hostIp, fmt.Sprintf("Failed to parse storage node config file for container %s: %v on host: %s", cinfo.ID, err, cli.Host), "", cinfo.ID, GlobalBlockDataManager.latestBlock)
 		return err
 	}
 
@@ -452,4 +462,36 @@ func (cli *WatchdogClient) setMinerInfoMapItem(ctx context.Context, cinfo model.
 	}
 
 	return nil
+}
+
+func doAlert(hostIP string, message string, signatureAcc string, containerID string, blockNumber uint64) {
+	if CustomConfig.Alert.Enable {
+		return
+	}
+	content := model.AlertContent{
+		AlertTime:    time.Now().Format(constant.TimeFormat),
+		HostIp:       hostIP,
+		Description:  message,
+		SignatureAcc: signatureAcc,
+		ContainerID:  containerID,
+		BlockNumber:  blockNumber,
+	}
+	if WebhooksConfig != nil {
+		go func() {
+			if err := WebhooksConfig.SendAlertToWebhook(content); err != nil {
+				log.Logger.Error("Failed to send alert webhook:", err)
+			} else {
+				log.Logger.Infof("Webhook alert sent successfully: %v", content)
+			}
+		}()
+	}
+	if SmtpConfig != nil {
+		go func() {
+			if err := SmtpConfig.SendMail(content); err != nil {
+				log.Logger.Error("Failed to send alert email:", err)
+			} else {
+				log.Logger.Info("Email alert sent successfully")
+			}
+		}()
+	}
 }

@@ -9,11 +9,13 @@ type HostItem struct {
 }
 
 type AlertContent struct {
-	AlertTime     string
-	HostIp        string
-	ContainerName string
-	Description   string
-	DetailUrl     string
+	AlertTime    string
+	HostIp       string
+	Description  string
+	DetailUrl    string
+	SignatureAcc string
+	ContainerID  string
+	BlockNumber  uint64
 }
 
 type Container struct {

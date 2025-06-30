@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/CESSProject/watchdog/docs"
 	"github.com/CESSProject/watchdog/internal/core"
+	"github.com/CESSProject/watchdog/internal/log"
 	"github.com/CESSProject/watchdog/internal/service"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -31,6 +32,9 @@ func main() {
 	}
 	err := router.Run(httpPort)
 	if err != nil {
+		log.Logger.Error("Failed to start server:", err)
 		return
+	} else {
+		log.Logger.Infof("Server running on port: %d", core.CustomConfig.Port)
 	}
 }

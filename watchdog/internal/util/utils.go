@@ -18,6 +18,7 @@ func ParseMinerConfigFile(data []byte) (model.MinerConfigFile, error) {
 	var conf model.MinerConfigFile
 	err := yaml.Unmarshal(data, &conf)
 	if err != nil {
+		log.Logger.Errorf("Failed to parse config file: %v", data)
 		return conf, err
 	}
 	return conf, nil
@@ -32,7 +33,7 @@ func TransferMinerInfoToMinerStat(info chain.MinerInfo) (model.MinerStat, error)
 	minerStat.IdleSpace = StorageSpaceUnitConversion(types.U128(info.IdleSpace))
 	minerStat.ServiceSpace = StorageSpaceUnitConversion(types.U128(info.ServiceSpace))
 	minerStat.LockSpace = StorageSpaceUnitConversion(types.U128(info.LockSpace))
-	minerStat.LatestPunishInfo = model.PunishSminerData{}
+	minerStat.LatestPunishInfo = []model.PunishSminerData{}
 	return minerStat, nil
 }
 
@@ -139,16 +140,16 @@ func IsPrivateIP(ip net.IP) bool {
 
 func GetWebhookType(url string) string {
 	switch {
+	case strings.Contains(url, "discord"): //discord.com
+		return constant.Discord
+	case strings.Contains(url, "slack"): // slack.com
+		return constant.Slack
+	case strings.Contains(url, "office"): //outlook.office.com
+		return constant.Teams
 	case strings.Contains(url, "dingtalk"): //oapi.dingtalk.com
 		return constant.DingTalk
 	case strings.Contains(url, "larksuite") || strings.Contains(url, "feishu"): // open.feishu.cn or open.larksuite.com
 		return constant.Lark
-	case strings.Contains(url, "discord"): //discord.com
-		return constant.Discord
-	case strings.Contains(url, "slack"): //open.larksuite.com
-		return constant.Slack
-	case strings.Contains(url, "office"): //outlook.office.com
-		return constant.Teams
 	case strings.Contains(url, "weixin") || strings.Contains(url, "qyapi"): //qyapi.weixin.qq.com
 		return constant.WeChat
 	default:
