@@ -1,138 +1,130 @@
 import React from 'react';
-import {Descriptions, DescriptionsProps, Divider} from 'antd';
-import {MinerInfoListModel} from "@/app/dashboard/miners";
+import { MinerInfoListModel } from "@/app/dashboard/miners";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 
-const minerInfoToDescriptionItems = (minerInfo: MinerInfoListModel): DescriptionsProps['items'] => [
-    {
-        label: 'Signature Account',
-        children: minerInfo.SignatureAcc,
-        contentStyle: {fontSize: "16px", color: 'black', fontWeight: "bold"},
-        style: {borderBottom: '2px solid black'}
-    },
-    {
-        label: 'Configuration',
-        span: {xs: 1, sm: 1, md: 1, lg: 1, xl: 1, xxl: 2},
-        contentStyle: {fontSize: "16px", color: 'black', fontWeight: "bold"},
-        style: {borderBottom: '2px solid black', borderRight: '2px solid black', borderLeft: '2px solid black'},
-        children: (
-            <>
-                <p><strong
-                    className="text-sm font-bold text-gray-900 dark:text-black">Port: </strong>{minerInfo.Conf.App.Port}</p>
-                <Divider></Divider>
-                <p><strong
-                    className="text-sm font-bold text-gray-900 dark:text-black">EarningsAcc: </strong>{minerInfo.Conf.Chain.EarningsAcc}
-                </p>
-                <Divider></Divider>
-                <p><strong
-                    className="text-sm font-bold text-gray-900 dark:text-black">StakingAcc: </strong>{minerInfo.Conf.Chain.StakingAcc}
-                </p>
-                <Divider></Divider>
-                <p><strong
-                    className="text-sm font-bold text-gray-900 dark:text-black">Rpc: </strong>{minerInfo.Conf.Chain.RPCs.join(", ")}</p>
-                <Divider></Divider>
-                <p><strong
-                    className="text-sm font-bold text-gray-900 dark:text-black">Use Space: </strong>{minerInfo.Conf.App.MaxUseSpace}GiB
-                </p>
-                <Divider></Divider>
-                <p><strong
-                    className="text-sm font-bold text-gray-900 dark:text-black">Use Core: </strong>{minerInfo.Conf.App.Cores}
-                </p>
-            </>
-        ),
-    },
-    {
-        label: 'Container Info',
-        span: {xs: 1, sm: 1, md: 1, lg: 1, xl: 1, xxl: 2},
-        contentStyle: {fontSize: "16px", color: 'black', fontWeight: "bold"},
-        style: {borderBottom: '2px solid black', borderRight: '2px solid black', borderLeft: '2px solid black'},
-        children: (
-            <>
-                <p><strong className="text-sm font-bold text-gray-900 dark:text-black">Container
-                    ID: </strong>{minerInfo.CInfo.id}</p>
-                <Divider></Divider>
-                <p><strong
-                    className="text-sm font-bold text-gray-900 dark:text-black">Name: </strong>{minerInfo.CInfo.name}
-                </p>
-                <Divider></Divider>
-                <p><strong
-                    className="text-sm font-bold text-gray-900 dark:text-black">Status: </strong>{minerInfo.CInfo.state}
-                </p>
-                <Divider></Divider>
-                <p><strong
-                    className="text-sm font-bold text-gray-900 dark:text-black">Up
-                    Time: </strong>{minerInfo.CInfo.status}
-                </p>
-                <Divider></Divider>
-                <p><strong
-                    className="text-sm font-bold text-gray-900 dark:text-black">CPU Percent: </strong>{minerInfo.CInfo.cpu_percent}%
-                </p>
-                <Divider></Divider>
-                <p><strong
-                    className="text-sm font-bold text-gray-900 dark:text-black">Memory Usage
-                    Usage: </strong>{minerInfo.CInfo.mem_usage}MiB
-                </p>
-                <Divider></Divider>
-                <p><strong
-                    className="text-sm font-bold text-gray-900 dark:text-black">Memory
-                    Usage: </strong>{minerInfo.CInfo.memory_percent}%
-                </p>
-            </>
-        ),
-    },
-    {
-        label: 'Miner Statistics',
-        span: {xs: 1, sm: 1, md: 1, lg: 1, xl: 1, xxl: 2},
-        contentStyle: {fontSize: "16px", color: 'black', fontWeight: "bold",},
-        style: {borderBottom: '2px solid black', borderRight: '2px solid black', borderLeft: '2px solid black'},
-        children: (
-            <>
-                <p><strong
-                    className="text-sm font-bold text-gray-900 dark:text-black">Status: </strong>{minerInfo.MinerStat.status}
-                </p>
-                <Divider></Divider>
-                <p><strong
-                    className="text-sm font-bold text-gray-900 dark:text-black">Declaration
-                    Space: </strong>{minerInfo.MinerStat.declaration_space}
-                </p>
-                <Divider></Divider>
-                <p><strong
-                    className="text-sm font-bold text-gray-900 dark:text-black">Idle
-                    Space: </strong>{minerInfo.MinerStat.idle_space}
-                </p>
-                <Divider></Divider>
-                <p><strong
-                    className="text-sm font-bold text-gray-900 dark:text-black">Service
-                    Space: </strong>{minerInfo.MinerStat.service_space}
-                </p>
-                <Divider></Divider>
-                <p><strong
-                    className="text-sm font-bold text-gray-900 dark:text-black">Total
-                    Reward: </strong>{minerInfo.MinerStat.total_reward}
-                </p>
-                <Divider></Divider>
-                <p><strong
-                    className="text-sm font-bold text-gray-900 dark:text-black">Claimed Reward: </strong>{minerInfo.MinerStat.reward_issued}
-                </p>
-            </>
-        ),
-    },
-];
+/**
+ * Miner Description Component
+ * Displays detailed information about a miner
+ * @param {Object} props - Component props
+ * @param {MinerInfoListModel} props.miner - Miner information to display
+ */
+const MinerDescription: React.FC<{ miner: MinerInfoListModel }> = ({ miner }) => {
+  return (
+    <div className="font-mono">
+      <h2 className="text-2xl font-bold mb-4 text-black dark:text-white">Miner Information</h2>
 
-// xs: 1: On very small screens (such as mobile phones), only 1 column is displayed.
-// sm: 2: On small screens (such as tablets), 2 columns are displayed.
-// md: 3: On medium screens, 3 columns are displayed.
-// lg: 3: On large screens, 3 columns are displayed.
-// xl: 4: On extra large screens, 4 columns are displayed.
-// xxl: 4: On extra large screens, 4 columns are displayed.
+      {/* Signature Account Section */}
+      <div className="mb-6">
+        <h3 className="text-lg font-bold mb-2 text-black dark:text-white">Signature Account</h3>
+        <div className="p-3 border-2 rounded-lg border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+          <p className="text-base font-medium text-black dark:text-white">
+            {miner.SignatureAcc}
+          </p>
+        </div>
+      </div>
 
-const MinerDescription: React.FC<{ miner: MinerInfoListModel }> = ({miner}) => (
-    <Descriptions
-        labelStyle={{color: 'black', fontWeight: "bold", fontSize: "18px"}}
-        title="Miner Information"
-        bordered
-        column={{xs: 1, sm: 1, md: 1, lg: 1, xl: 1, xxl: 2}}
-        items={minerInfoToDescriptionItems(miner)}
-    />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+        {/* Configuration Section */}
+        <Card className="border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 transition-colors duration-300">
+          <CardHeader className="pb-2 bg-gray-50 dark:bg-gray-750">
+            <CardTitle className="text-lg font-bold text-black dark:text-white">Configuration</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <InfoItem label="Port" value={miner.Conf.App.Port.toString()} />
+            <Separator className="my-3" />
+
+            <InfoItem label="EarningsAcc" value={miner.Conf.Chain.EarningsAcc} />
+            <Separator className="my-3" />
+
+            <InfoItem label="StakingAcc" value={miner.Conf.Chain.StakingAcc} />
+            <Separator className="my-3" />
+
+            <InfoItem label="Rpc" value={miner.Conf.Chain.RPCs.join(", ")} />
+            <Separator className="my-3" />
+
+            <InfoItem label="Use Space" value={`${miner.Conf.App.MaxUseSpace} GiB`} />
+            <Separator className="my-3" />
+
+            <InfoItem label="Use Core" value={miner.Conf.App.Cores.toString()} />
+          </CardContent>
+        </Card>
+
+        {/* Container Info Section */}
+        <Card className="border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 transition-colors duration-300">
+          <CardHeader className="pb-2 bg-gray-50 dark:bg-gray-750">
+            <CardTitle className="text-lg font-bold text-black dark:text-white">Container Info</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <InfoItem label="Container ID" value={miner.CInfo.id} />
+            <Separator className="my-3" />
+
+            <InfoItem label="Name" value={miner.CInfo.name} />
+            <Separator className="my-3" />
+
+            <InfoItem label="Status" value={miner.CInfo.state} />
+            <Separator className="my-3" />
+
+            <InfoItem label="Up Time" value={miner.CInfo.status} />
+            <Separator className="my-3" />
+
+            <InfoItem label="CPU Percent" value={`${miner.CInfo.cpu_percent}%`} />
+            <Separator className="my-3" />
+
+            <InfoItem label="Memory Usage" value={`${miner.CInfo.mem_usage} MiB`} />
+            <Separator className="my-3" />
+
+            <InfoItem label="Memory Usage" value={`${miner.CInfo.memory_percent}%`} />
+          </CardContent>
+        </Card>
+
+        {/* Miner Statistics Section */}
+        <Card className="border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 transition-colors duration-300">
+          <CardHeader className="pb-2 bg-gray-50 dark:bg-gray-750">
+            <CardTitle className="text-lg font-bold text-black dark:text-white">Miner Statistics</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <InfoItem label="Status" value={miner.MinerStat.status} />
+            <Separator className="my-3" />
+
+            <InfoItem label="Declaration Space" value={miner.MinerStat.declaration_space.toString()} />
+            <Separator className="my-3" />
+
+            <InfoItem label="Idle Space" value={miner.MinerStat.idle_space.toString()} />
+            <Separator className="my-3" />
+
+            <InfoItem label="Service Space" value={miner.MinerStat.service_space.toString()} />
+            <Separator className="my-3" />
+
+            <InfoItem label="Total Reward" value={miner.MinerStat.total_reward.toString()} />
+            <Separator className="my-3" />
+
+            <InfoItem label="Claimed Reward" value={miner.MinerStat.reward_issued.toString()} />
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+};
+
+/**
+ * Info Item Component
+ * Displays a label-value pair with enhanced visual distinction
+ * @param {Object} props - Component props
+ * @param {string} props.label - Label text
+ * @param {string} props.value - Value text
+ */
+const InfoItem: React.FC<{ label: string; value: string }> = ({ label, value }) => (
+  <div className="flex flex-col space-y-1">
+    {/* Enhanced label style with uppercase and distinct color */}
+    <span className="text-xs uppercase tracking-wide font-bold text-blue-600 dark:text-blue-400">
+      {label}
+    </span>
+    {/* Enhanced value style with larger font and clearer contrast */}
+    <span className="text-base font-medium text-black dark:text-white break-all">
+      {value}
+    </span>
+  </div>
 );
 
 export default MinerDescription;

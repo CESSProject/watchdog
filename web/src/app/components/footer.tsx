@@ -3,7 +3,7 @@ export default function Footer() {
         <footer className="bg-white dark:bg-gray-900 w-full flex">
             <div className="flex md:flex-row justify-between items-start w-full bottom-0">
       <span className="text-sm text-gray-500 dark:text-gray-300 mb-4 md:mb-0 pl-20">
-        © 2024 <a href="https://cess.cloud/" className="hover:underline">CESS™.</a>
+        © 2019-2025 <a href="https://cess.cloud/" className="hover:underline">CESS™.</a>
       </span>
                 <div className="flex mt-4 sm:justify-center sm:mt-0 pr-20">
                     <a href="https://t.me/CESS_Storage_official" target="_blank"
