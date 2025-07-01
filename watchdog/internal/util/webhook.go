@@ -8,6 +8,7 @@ import (
 	"github.com/CESSProject/watchdog/internal/log"
 	"github.com/CESSProject/watchdog/internal/model"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -178,8 +179,8 @@ func (conf *WebhookConfig) SendAlertToWebhook(content model.AlertContent) (err e
 }
 
 func buildMessage(content model.AlertContent) (string, error) {
-	if content.AlertTime == "" && content.HostIp == "" && content.ContainerName == "" && content.Description == "" {
-		return "", fmt.Errorf("no alert content provided")
+	if content.AlertTime == "" && content.HostIp == "" && content.Description == "" {
+		return "", fmt.Errorf("cant build webhook msg with insufficient content")
 	}
 	var messageParts []string
 	messageParts = append(messageParts, "CESS Information")
@@ -190,11 +191,20 @@ func buildMessage(content model.AlertContent) (string, error) {
 	if content.HostIp != "" {
 		messageParts = append(messageParts, "Host: "+content.HostIp)
 	}
-	if content.ContainerName != "" {
-		messageParts = append(messageParts, "Miner Name: "+content.ContainerName)
-	}
 	if content.Description != "" {
 		messageParts = append(messageParts, "Description: "+content.Description)
+	}
+	if content.DetailUrl != "" {
+		messageParts = append(messageParts, "Url: "+content.DetailUrl)
+	}
+	if content.SignatureAcc != "" {
+		messageParts = append(messageParts, "Signature Account: "+content.SignatureAcc)
+	}
+	if content.ContainerID != "" {
+		messageParts = append(messageParts, "Container ID: "+content.ContainerID)
+	}
+	if content.BlockNumber != 0 {
+		messageParts = append(messageParts, "Block Number: "+strconv.FormatUint(content.BlockNumber, 10))
 	}
 	return strings.Join(messageParts, ", "), nil
 }

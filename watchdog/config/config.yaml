@@ -13,7 +13,7 @@ hosts:
     # set ca/crt/key path if the ip no belongs to [ 127.x, 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 ]
   - ip: 1.1.1.1
     # make sure docker daemon tls listen at 2376: https://docs.docker.com/engine/security/protect-access/
-    # warning: tls is not 100% safe
+    # warning: tls ≠ security
     port: 2376
     ca_path: /opt/cess/watchdog/tls/1.1.1.1-ca.pem
     cert_path: /opt/cess/watchdog/tls/1.1.1.1-cert.pem

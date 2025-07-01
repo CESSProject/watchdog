@@ -34,7 +34,7 @@ func Run() {
 	}
 	err = RunWatchdogClients(CustomConfig)
 	if err != nil {
-		log.Logger.Fatalf("Run CESS Node Monitor failed: %v", err)
+		log.Logger.Fatalf("Run CESS Storage Monitor failed: %v", err)
 		return
 	}
 }
@@ -57,7 +57,7 @@ func InitWatchdogConfig() error {
 	}
 	// 1800 <= ScrapeInterval <= 3600
 	CustomConfig.ScrapeInterval = int(math.Max(1800, math.Min(float64(CustomConfig.ScrapeInterval), 3600)))
-	log.Logger.Infof("Init watchdog with config file: %v \n", CustomConfig)
+	log.Logger.Infof("Init watchdog with config file:\n %v \n", CustomConfig)
 	return nil
 }
 

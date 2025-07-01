@@ -9,11 +9,13 @@ type HostItem struct {
 }
 
 type AlertContent struct {
-	AlertTime     string
-	HostIp        string
-	ContainerName string
-	Description   string
-	DetailUrl     string
+	AlertTime    string
+	HostIp       string
+	Description  string
+	DetailUrl    string
+	SignatureAcc string
+	ContainerID  string
+	BlockNumber  uint64
 }
 
 type Container struct {
@@ -38,16 +40,16 @@ type ContainerStat struct {
 }
 
 type MinerStat struct {
-	Collaterals      string           `json:"collaterals"`
-	Debt             string           `json:"debt"`
-	Status           string           `json:"status"`            // positive, exit, frozen, unready(register on chain but no get a tag from tee)
-	DeclarationSpace string           `json:"declaration_space"` // unit: TiB
-	IdleSpace        string           `json:"idle_space"`
-	ServiceSpace     string           `json:"service_space"`
-	LockSpace        string           `json:"lock_space"` // upload file allocated to this miner but not get a proof from tee yet, it can be serviceSpace after get proof from tee
-	LatestPunishInfo PunishSminerData `json:"punish_info_list"`
-	TotalReward      string           `json:"total_reward"`
-	RewardIssued     string           `json:"reward_issued"`
+	Collaterals      string             `json:"collaterals"`
+	Debt             string             `json:"debt"`
+	Status           string             `json:"status"`            // positive, exit, frozen, unready(register on chain but no get a tag from tee)
+	DeclarationSpace string             `json:"declaration_space"` // unit: TiB
+	IdleSpace        string             `json:"idle_space"`
+	ServiceSpace     string             `json:"service_space"`
+	LockSpace        string             `json:"lock_space"` // upload file allocated to this miner but not get a proof from tee yet, it can be serviceSpace after get proof from tee
+	LatestPunishInfo []PunishSminerData `json:"punish_info_list"`
+	TotalReward      string             `json:"total_reward"`
+	RewardIssued     string             `json:"reward_issued"`
 }
 
 type MinerConfigFile struct {
