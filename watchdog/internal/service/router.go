@@ -19,8 +19,8 @@ func RegisterRoutes(r *gin.Engine) {
 	r.GET("/clients", getClientsStatus)
 	r.POST("/config", setConfig)
 	r.GET("/config", getConfig)
-	r.GET("/toggle", getToggle)
-	r.POST("/toggle", setToggle)
+	r.GET("/toggle", getAlertToggle)
+	r.POST("/toggle", setAlertToggle)
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 }
 
