@@ -186,25 +186,25 @@ func buildMessage(content model.AlertContent) (string, error) {
 	messageParts = append(messageParts, "CESS Information")
 
 	if content.AlertTime != "" {
-		messageParts = append(messageParts, "Alert Time: "+content.AlertTime)
+		messageParts = append(messageParts, "\n Alert Time: "+content.AlertTime)
 	}
 	if content.HostIp != "" {
-		messageParts = append(messageParts, "Host: "+content.HostIp)
+		messageParts = append(messageParts, "\n IP: "+content.HostIp)
 	}
 	if content.Description != "" {
-		messageParts = append(messageParts, "Description: "+content.Description)
+		messageParts = append(messageParts, "\n Message: "+content.Description)
 	}
 	if content.DetailUrl != "" {
-		messageParts = append(messageParts, "Url: "+content.DetailUrl)
+		messageParts = append(messageParts, "\n Url: "+content.DetailUrl)
 	}
 	if content.SignatureAcc != "" {
-		messageParts = append(messageParts, "Signature Account: "+content.SignatureAcc)
+		messageParts = append(messageParts, "\n Signature Account: "+content.SignatureAcc)
 	}
 	if content.ContainerID != "" {
-		messageParts = append(messageParts, "Container ID: "+content.ContainerID)
+		messageParts = append(messageParts, "\n Container ID: "+content.ContainerID)
 	}
 	if content.BlockNumber != 0 {
-		messageParts = append(messageParts, "Block Number: "+strconv.FormatUint(content.BlockNumber, 10))
+		messageParts = append(messageParts, "\n Block Number: "+strconv.FormatUint(content.BlockNumber, 10))
 	}
 	return strings.Join(messageParts, ", "), nil
 }
