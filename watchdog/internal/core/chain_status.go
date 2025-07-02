@@ -55,17 +55,18 @@ func (cli *WatchdogClient) SetChainData(signatureAcc string, created int64) (mod
 	stat.TotalReward = util.BigNumConversion(types.U128(reward.TotalReward))
 	stat.RewardIssued = util.BigNumConversion(types.U128(reward.RewardIssued))
 
-	stat.LatestPunishInfo = getMinerPunishInfo(GlobalBlockDataManager.BlockDataList, signatureAcc)
+	stat.LatestPunishInfo = getMinerPunishInfo(GlobalBlockDataManager.BlockDataList, signatureAcc, hostIP)
 
 	return stat, nil
 }
 
-func getMinerPunishInfo(blockDataList []chain.BlockData, signatureAcc string) []model.PunishSminerData {
+func getMinerPunishInfo(blockDataList []chain.BlockData, signatureAcc string, hostIp string) []model.PunishSminerData {
 	var latestPunishInfo []model.PunishSminerData
 	for _, blockData := range blockDataList {
 		for _, punish := range blockData.Punishment {
 			if punish.From == signatureAcc {
-				go doAlert("", fmt.Sprintf("%s get punishment at block %d", signatureAcc, blockData.BlockId), signatureAcc, "", uint64(blockData.BlockId))
+				log.Logger.Errorf("%s: %s get punishment at block: %d", hostIp, punish.From, blockData.BlockId)
+				go doAlert(hostIp, fmt.Sprint("Storage Node Punishment Event"), signatureAcc, "", uint64(blockData.BlockId))
 				punishData := model.PunishSminerData{
 					BlockId:       blockData.BlockId,
 					ExtrinsicHash: punish.ExtrinsicHash,
