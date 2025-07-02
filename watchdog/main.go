@@ -23,7 +23,7 @@ func main() {
 		AllowCredentials: true,
 	}
 	router.Use(cors.New(corsConfig))
-	service.RegisterRoutes(router)
+	service.SetupRouter(&core.CustomConfig, router)
 	var httpPort string
 	if core.CustomConfig.External {
 		httpPort = ":" + strconv.Itoa(core.CustomConfig.Port)

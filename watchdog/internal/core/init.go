@@ -8,6 +8,8 @@ import (
 	"gopkg.in/yaml.v3"
 	"math"
 	"os"
+	"strconv"
+	"strings"
 )
 
 type MinerInfoVO struct {
@@ -39,6 +41,37 @@ func Run() {
 	}
 }
 
+func loadConfigFromEnv(cfg model.YamlConfig) model.YamlConfig {
+	if port := os.Getenv("WATCHDOG_PORT"); port != "" {
+		if port, err := strconv.Atoi(port); err == nil {
+			cfg.Port = port
+		}
+	}
+	if external := os.Getenv("WATCHDOG_IS_EXTERNAL"); external != "" {
+		cfg.External = strings.ToLower(external) == "true"
+	}
+	if scrapeInterval := os.Getenv("WATCHDOG_SCRAPE_INTERVAL"); scrapeInterval != "" {
+		if interval, err := strconv.Atoi(scrapeInterval); err == nil {
+			cfg.ScrapeInterval = interval
+		}
+	}
+	if username := os.Getenv("WATCHDOG_USERNAME"); username != "" {
+		cfg.Auth.Username = username
+	}
+	if password := os.Getenv("WATCHDOG_PASSWORD"); password != "" {
+		cfg.Auth.Password = password
+	}
+	if jwtKey := os.Getenv("WATCHDOG_JWT_SECRET"); jwtKey != "" {
+		cfg.Auth.JWTSecretKey = jwtKey
+	}
+	if expiryStr := os.Getenv("WATCHDOG_TOKEN_EXPIRY"); expiryStr != "" {
+		if expiry, err := strconv.Atoi(expiryStr); err == nil {
+			cfg.Auth.TokenExpiry = expiry
+		}
+	}
+	return cfg
+}
+
 func InitWatchdogConfig() error {
 	yamlFile, err := os.ReadFile(constant.ConfPath)
 	if err != nil {
@@ -55,6 +88,7 @@ func InitWatchdogConfig() error {
 		log.Logger.Fatalf("Error when parse file from %s: %v", constant.ConfPath, err)
 		return err
 	}
+	CustomConfig = loadConfigFromEnv(CustomConfig) // env priority over config file
 	// 1800 <= ScrapeInterval <= 3600
 	CustomConfig.ScrapeInterval = int(math.Max(1800, math.Min(float64(CustomConfig.ScrapeInterval), 3600)))
 	log.Logger.Infof("Init watchdog with config file:\n %v \n", CustomConfig)

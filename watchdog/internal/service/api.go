@@ -6,6 +6,7 @@ import (
 	"github.com/CESSProject/watchdog/constant"
 	"github.com/CESSProject/watchdog/internal/core"
 	"github.com/CESSProject/watchdog/internal/log"
+	"github.com/CESSProject/watchdog/internal/middleware"
 	"github.com/CESSProject/watchdog/internal/model"
 	"github.com/CESSProject/watchdog/internal/util"
 	"github.com/gin-gonic/gin"
@@ -23,7 +24,7 @@ import (
 // @Description Service HealthCheck
 // @Tags HealthCheck
 // @Success 200 {string} ok
-// @Router / [get]
+// @Router /health_check [get]
 func healthCheck(c *gin.Context) {
 	c.JSON(http.StatusOK, 0)
 }
@@ -62,7 +63,7 @@ func getHosts(c *gin.Context) {
 
 // watchdog godoc
 // @Description  Get Clients Status
-// @Tags         Get Hosts
+// @Tags         Get Clients Status
 // @Success      200  {object} map[string]string
 // @Router       /clients [get]
 func getClientsStatus(c *gin.Context) {
@@ -114,14 +115,17 @@ func setConfig(c *gin.Context) {
 	}
 	log.Logger.Infof("Save new config %v to: %s", configTemp, constant.ConfPath)
 
+	bgCtx := context.Background()
 	timeout := time.Duration(core.CustomConfig.ScrapeInterval) * time.Second
 	if timeout <= 0 || timeout > 60*time.Minute {
 		timeout = 60 * time.Minute
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	go runWithNewConf(ctx)
-	c.JSON(http.StatusOK, gin.H{"message": "update Watchdog config success"})
+	ctx, cancel := context.WithTimeout(bgCtx, timeout)
+	go func() {
+		defer cancel() // make sure cancel ctx after runWithNewConf
+		runWithNewConf(ctx)
+	}()
+	c.JSON(http.StatusOK, gin.H{"message": "update Watchdog config success, please wait for a while for the change to take effect"})
 }
 
 // watchdog godoc
@@ -141,6 +145,8 @@ func getConfig(c *gin.Context) {
 	}
 	conf.Alert.Email.SenderAddr = replaceFirstThreeChars(conf.Alert.Email.SenderAddr)
 	conf.Alert.Email.SmtpPassword = "******"
+	conf.Auth.Password = "******"
+	conf.Auth.JWTSecretKey = "******"
 	c.JSON(http.StatusOK, conf)
 }
 
@@ -328,4 +334,38 @@ func canProceed() bool {
 		}
 	}
 	return true
+}
+
+type LoginRequest struct {
+	Username string `json:"username" binding:"required"`
+	Password string `json:"password" binding:"required"`
+}
+
+type LoginResponse struct {
+	Token string `json:"token"`
+}
+
+func login(cfg *model.YamlConfig) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var req LoginRequest
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
+			return
+		}
+
+		// Validate credentials
+		if req.Username != cfg.Auth.Username || req.Password != cfg.Auth.Password {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid username or password"})
+			return
+		}
+
+		// Generate token
+		token, err := middleware.GenerateToken(req.Username, cfg)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
+			return
+		}
+
+		c.JSON(http.StatusOK, LoginResponse{Token: token})
+	}
 }

@@ -90,6 +90,12 @@ type YamlConfig struct {
 			Receiver     []string `yaml:"receiver,omitempty" json:"receiver,omitempty"`
 		} `yaml:"email"`
 	} `yaml:"alert" json:"alert"`
+	Auth struct {
+		Username     string `yaml:"username" json:"enable"`
+		Password     string `yaml:"password" json:"password"`
+		JWTSecretKey string `yaml:"jwt_secret_key" json:"jwt_secret_key"`
+		TokenExpiry  int    `yaml:"token_expiry" json:"token_expiry"` // hour
+	} `yaml:"auth"`
 }
 
 type AlertToggle struct {
