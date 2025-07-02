@@ -39,8 +39,6 @@ import {
 import { api } from "@/app/service/api";
 import { ApiWrapper, httpResponseError } from "@/utils";
 
-const API_URL = env("NEXT_PUBLIC_API_URL") || "http://localhost:13081";
-
 // Define the Zod schema for form validation
 const hostsSchema = z.object({
   ip: z.string().min(1, "IP address is required"),
@@ -59,7 +57,7 @@ const emailSchema = z.object({
 });
 
 const alertSchema = z.object({
-  enable: z.boolean().default(false),
+  enable: z.boolean(),
   webhook: z.array(z.string()),
   email: emailSchema
 });
