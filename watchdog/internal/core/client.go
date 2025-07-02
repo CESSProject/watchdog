@@ -107,6 +107,7 @@ func (bdm *BlockDataManager) initialQueuePopulation() error {
 
 	latestBlockNum := uint64(latestBlockNumber)
 	bdm.latestBlock = latestBlockNum
+	log.Logger.Infof("Init block queue with the latest block number: %d", latestBlockNum)
 
 	// Calculate the starting block number
 	startBlockNum := int64(latestBlockNum) - int64(bdm.maxQueueSize) + 1
@@ -206,6 +207,9 @@ func (bdm *BlockDataManager) processNewBlock(blockNum uint64) error {
 	// Add the new block
 	bdm.BlockDataList = append(bdm.BlockDataList, data)
 	bdm.blockDataMap[blockNum] = true
+	if int(bdm.latestBlock)%10 == 0 { // Print every 10 blocks (1min)
+		log.Logger.Infof("Save block data from %s, current block num %d", bdm.chainClient.CessClient.GetCurrentRpcAddr(), bdm.latestBlock)
+	}
 
 	log.Logger.Debugf("Added new block %d to queue, queue size now: %d", blockNum, len(bdm.BlockDataList))
 	return nil
@@ -465,7 +469,7 @@ func (cli *WatchdogClient) setMinerInfoMapItem(ctx context.Context, cinfo model.
 }
 
 func doAlert(hostIP string, message string, signatureAcc string, containerID string, blockNumber uint64) {
-	if CustomConfig.Alert.Enable {
+	if !CustomConfig.Alert.Enable {
 		return
 	}
 	content := model.AlertContent{
