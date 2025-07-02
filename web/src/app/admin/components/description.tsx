@@ -1,5 +1,5 @@
 import React from 'react';
-import { MinerInfoListModel } from "@/app/dashboard/miners";
+import { MinerInfoListModel } from "@/app/admin/dashboard/miners";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 

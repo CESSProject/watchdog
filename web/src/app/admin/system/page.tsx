@@ -21,21 +21,23 @@ import {
   FormField,
   FormItem,
   FormLabel,
-  FormMessage,
+  FormMessage
 } from "@/components/ui/form";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
-  AccordionTrigger,
+  AccordionTrigger
 } from "@/components/ui/accordion";
 import { Separator } from "@/components/ui/separator";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
-  TooltipTrigger,
+  TooltipTrigger
 } from "@/components/ui/tooltip";
+import { api } from "@/app/service/api";
+import { ApiWrapper, httpResponseError } from "@/utils";
 
 const API_URL = env("NEXT_PUBLIC_API_URL") || "http://localhost:13081";
 
@@ -45,7 +47,7 @@ const hostsSchema = z.object({
   port: z.string().min(1, "Port is required"),
   ca_path: z.string().optional(),
   cert_path: z.string().optional(),
-  key_path: z.string().optional(),
+  key_path: z.string().optional()
 });
 
 const emailSchema = z.object({
@@ -53,25 +55,25 @@ const emailSchema = z.object({
   smtp_port: z.number().int().positive().optional().nullable(),
   smtp_account: z.string().optional(),
   smtp_password: z.string().optional(),
-  receiver: z.array(z.string()),
+  receiver: z.array(z.string())
 });
 
 const alertSchema = z.object({
   enable: z.boolean().default(false),
   webhook: z.array(z.string()),
-  email: emailSchema,
+  email: emailSchema
 });
 
 const serverSchema = z.object({
   port: z.number().int().positive(),
-  external: z.boolean(),
+  external: z.boolean()
 });
 
 const configSchema = z.object({
   server: serverSchema,
   scrapeInterval: z.number().int().positive("Interval must be a positive number"),
   hosts: z.array(hostsSchema),
-  alert: alertSchema,
+  alert: alertSchema
 });
 
 // Type inference from Zod schema
@@ -90,7 +92,7 @@ export default function ConfigurationPage() {
     defaultValues: {
       server: {
         port: 13081,
-        external: false,
+        external: false
       },
       scrapeInterval: 60,
       hosts: [],
@@ -102,10 +104,10 @@ export default function ConfigurationPage() {
           smtp_port: 587,
           smtp_account: "",
           smtp_password: "",
-          receiver: [],
-        },
-      },
-    },
+          receiver: []
+        }
+      }
+    }
   });
 
   // Watch fields for dynamic rendering
@@ -118,23 +120,19 @@ export default function ConfigurationPage() {
     const fetchConfig = async () => {
       setIsLoading(true);
       try {
-        const response = await axios.get(`${API_URL}/config`);
+        const res = await api.getConfig() as ApiWrapper<any>;
 
-        if (response.data) {
-          console.log("API response data:", response.data);
-
+        if (res.status >= 200 && res.status < 300 && res.data) {
           // Map API response to the form structure
-          const configData = mapResponseToFormData(response.data);
-          console.log("Mapped form data:", configData);
-
+          const configData = mapResponseToFormData(res.data);
           // Reset form with validated data
           form.reset(configData);
         }
       } catch (error) {
         console.error("Error fetching configuration:", error);
-        toast.error("Failed to load configuration data", {
+        toast.error("Failed to fetch configuration data", {
           description: "Please try again later or contact support.",
-          duration: 5000,
+          duration: 5000
         });
       } finally {
         setIsLoading(false);
@@ -146,14 +144,13 @@ export default function ConfigurationPage() {
   // Map API response to form data with proper field mapping
   function mapResponseToFormData(apiResponse: any): ConfigFormValues {
     // Log API response structure
-    console.log("API response structure:", Object.keys(apiResponse));
 
     // Create safe default values with field mapping based on API structure
     const formData: ConfigFormValues = {
       server: {
         // Root-level fields in API need to be moved to server object
         port: Number(apiResponse.port) || 13081,
-        external: Boolean(apiResponse.external) || false,
+        external: Boolean(apiResponse.external) || false
       },
       scrapeInterval: Number(apiResponse.scrapeInterval) || 60,
       hosts: Array.isArray(apiResponse.hosts) ? apiResponse.hosts.map((host: any) => ({
@@ -162,7 +159,7 @@ export default function ConfigurationPage() {
         port: String(host.Port || ""),
         ca_path: String(host.CAPath || ""),
         cert_path: String(host.CertPath || ""),
-        key_path: String(host.KeyPath || ""),
+        key_path: String(host.KeyPath || "")
       })) : [],
       alert: {
         enable: Boolean(apiResponse.alert?.enable) || false,
@@ -175,9 +172,9 @@ export default function ConfigurationPage() {
           smtp_account: String(apiResponse.alert?.Email?.smtp_account || ""),
           smtp_password: String(apiResponse.alert?.Email?.smtp_password || ""),
           receiver: Array.isArray(apiResponse.alert?.Email?.receiver) ?
-            apiResponse.alert.Email.receiver.map((email: any) => String(email || "")) : [],
-        },
-      },
+            apiResponse.alert.Email.receiver.map((email: any) => String(email || "")) : []
+        }
+      }
     };
 
     return formData;
@@ -196,7 +193,7 @@ export default function ConfigurationPage() {
         Port: host.port,
         CAPath: host.ca_path,
         CertPath: host.cert_path,
-        KeyPath: host.key_path,
+        KeyPath: host.key_path
       })),
       alert: {
         enable: formValues.alert.enable,
@@ -207,9 +204,9 @@ export default function ConfigurationPage() {
           smtp_port: formValues.alert.email.smtp_port,
           smtp_account: formValues.alert.email.smtp_account,
           smtp_password: formValues.alert.email.smtp_password,
-          receiver: formValues.alert.email.receiver,
-        },
-      },
+          receiver: formValues.alert.email.receiver
+        }
+      }
     };
   }
 
@@ -217,30 +214,30 @@ export default function ConfigurationPage() {
   const onSubmit = async (values: ConfigFormValues) => {
     // Convert form values to match API structure
     const submissionData = prepareSubmissionData(values);
-    console.log("Form submission values:", submissionData);
 
     toast.promise(
       async () => {
         setIsLoading(true);
         try {
-          const response = await axios.post(`${API_URL}/config`, submissionData, {
-            headers: {
-              "Content-Type": "application/json",
-            },
-          });
-
-          setIsLoading(false);
-          return response.data;
+          const res = await api.setConfig(submissionData) as ApiWrapper<any>;
+          if (res.status >= 200 && res.status < 300) {
+            return res.status;
+          } else {
+            toast.error(`Request error: ${res.status}`);
+            return;
+          }
         } catch (error) {
-          console.error("Error submitting form:", error);
+          console.error("Failed to update config:", error);
+          httpResponseError(error);
+          return;
+        } finally {
           setIsLoading(false);
-          throw new Error("Failed to update configuration");
         }
       },
       {
-        loading: 'Saving configuration...',
-        success: 'Configuration saved successfully!',
-        error: 'Failed to save configuration. Please try again.'
+        loading: "Saving configuration...",
+        success: "Configuration saved successfully!",
+        error: "Failed to save configuration. Please try again."
       }
     );
   };
@@ -294,7 +291,7 @@ export default function ConfigurationPage() {
   };
   return (
     <div className="container max-w-3xl mx-auto py-8 px-4 font-mono transition-all duration-300">
-      <Toaster richColors position="top-center" closeButton />
+      <Toaster richColors={false} position="top-center" closeButton />
 
       <Card className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-black shadow-md transition-all duration-300">
         <CardHeader className="bg-gray-50 dark:bg-black border-b border-gray-200 dark:border-gray-700 transition-colors duration-300">

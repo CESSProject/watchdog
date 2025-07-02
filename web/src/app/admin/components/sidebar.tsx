@@ -28,13 +28,13 @@ export function LeftDrawer() {
       key: "dashboard",
       icon: <PieChart className="h-4 w-4 mr-2" />,
       label: "Dashboard",
-      href: "/dashboard",
+      href: "/admin/dashboard",
     },
     {
       key: "system",
       icon: <Monitor className="h-4 w-4 mr-2" />,
       label: "Configuration",
-      href: "/system",
+      href: "/admin/system",
     },
   ];
 
