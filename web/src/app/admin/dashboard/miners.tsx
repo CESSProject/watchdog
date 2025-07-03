@@ -1,5 +1,5 @@
 import React, { Fragment, useState } from "react";
-import MinerDescription from "@/app/components/description";
+import MinerDescription from "@/app/admin/components/description";
 import { unixTimestampToDateFormat } from "@/utils";
 
 import {
@@ -142,10 +142,13 @@ export default function Miners({ host }: HostProp) {
             className="mb-8 p-4 rounded-lg shadow-md border-2 border-gray-200 dark:border-gray-700
                                   bg-white dark:bg-gray-600 transition-colors duration-300"
           >
-            <h1 className="text-xl font-bold mb-4 text-blue-600 dark:text-blue-400 transition-colors duration-300">
-              <span className="px-2 text-white bg-blue-900 rounded dark:bg-blue-700 transition-colors duration-300">Host</span>
+            <h1 className="text-xl font-bold mb-4 text-black dark:text-white transition-colors duration-300">
+              <span className="px-2 text-white bg-blue-600 rounded dark:bg-blue-700 transition-colors duration-300">Host</span>
               &nbsp;&nbsp; {host?.Host ? host.Host : "Unknown"}
             </h1>
+            <h2 className="text-l font-bold mb-4 text-blue-600 dark:text-blue-400 transition-colors duration-300">
+              <span className="px-2 text-black dark:text-white bg-gray-200 rounded dark:bg-gray-600 transition-colors duration-300">Total: {host?.MinerInfoList.length}</span>
+            </h2>
             <div className="w-full">
               <div className="overflow-x-auto w-full">
                 <div className="rounded-lg overflow-hidden">

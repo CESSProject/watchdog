@@ -1,43 +1,20 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import {Inter} from "next/font/google";
 import "./globals.css";
-import { LeftDrawer } from "@/app/components/sidebar";
-import NavBar from "@/app/components/navbar";
-import Footer from "@/app/components/footer";
-import React from "react";
-import { PublicEnvScript } from "next-runtime-env";
-import { ThemeProvider } from "next-themes";
+import {PublicEnvScript} from "next-runtime-env";
+import { Toaster } from "sonner";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({subsets: ["latin"]});
 
-export const metadata: Metadata = {
-  title: "Storage Monitor",
-  description: "Monitor and manage CESS miners"
-};
-
-export default function RootLayout({
-                                     children
-                                   }: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({children,}: Readonly<{ children: React.ReactNode; }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en">
     <head>
-      <PublicEnvScript />
-      <link rel="icon" href="/favicon.ico" type="image/x-icon" />
+      <PublicEnvScript/>
+      <title>CESS Operation Platform</title>
     </head>
     <body className={inter.className}>
-    <ThemeProvider
-      attribute="class"
-      defaultTheme="system"
-      enableSystem
-      disableTransitionOnChange
-    >
-      <NavBar />
-      <LeftDrawer />
-      <main className="pt-16 px-4 md:px-6">
-        {children}
-      </main>
-      <Footer />
-    </ThemeProvider>
+    {children}
+    <Toaster position="top-center" duration={3000}/>
     </body>
     </html>
   );

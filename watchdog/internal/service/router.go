@@ -2,6 +2,8 @@ package service
 
 import (
 	"github.com/CESSProject/watchdog/internal/log"
+	"github.com/CESSProject/watchdog/internal/middleware"
+	"github.com/CESSProject/watchdog/internal/model"
 	"github.com/CESSProject/watchdog/internal/util"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
@@ -11,17 +13,26 @@ import (
 	"strings"
 )
 
-func RegisterRoutes(r *gin.Engine) {
-	r.GET("/", healthCheck)
-	r.GET("/health_check", healthCheck)
-	r.GET("/list", list)
-	r.GET("/hosts", getHosts)
-	r.GET("/clients", getClientsStatus)
-	r.POST("/config", setConfig)
-	r.GET("/config", getConfig)
-	r.GET("/toggle", getAlertToggle)
-	r.POST("/toggle", setAlertToggle)
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+func SetupRouter(cfg *model.YamlConfig, r *gin.Engine) *gin.Engine {
+	public := r.Group("/")
+	{
+		public.POST("/login", login(cfg))
+		public.POST("/health_check", healthCheck)
+		public.POST("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	}
+
+	protected := r.Group("/")
+	protected.Use(middleware.JWTAuth(cfg))
+	{
+		protected.GET("/list", list)
+		protected.GET("/hosts", getHosts)
+		protected.GET("/clients", getHosts)
+		protected.GET("/config", getConfig)
+		protected.GET("/toggle", getAlertToggle)
+		protected.POST("/config", setConfig)
+		protected.POST("/toggle", setAlertToggle)
+	}
+	return r
 }
 
 // unsafe request might leak your smtpAcc/smtpPwd and webhookUrl

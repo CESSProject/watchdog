@@ -40,9 +40,9 @@ export default function NavBar() {
       </div>
 
       <div className="flex items-center justify-center">
-        <Link href="/dashboard" className="flex items-center">
+        <Link href="/admin/dashboard" className="flex items-center">
           <Image
-            src="/favicon.ico"
+            src="../favicon.ico"
             className="mr-3"
             alt="Watchdog Logo"
             width={36}
