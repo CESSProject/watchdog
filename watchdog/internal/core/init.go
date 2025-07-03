@@ -10,6 +10,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type MinerInfoVO struct {
@@ -89,6 +90,10 @@ func InitWatchdogConfig() error {
 		return err
 	}
 	CustomConfig = loadConfigFromEnv(CustomConfig) // env priority over config file
+
+	// set default value for CustomConfig.Auth
+	CustomConfig = setDefaultValueForAuth(CustomConfig)
+
 	// 1800 <= ScrapeInterval <= 3600
 	CustomConfig.ScrapeInterval = int(math.Max(1800, math.Min(float64(CustomConfig.ScrapeInterval), 3600)))
 	log.Logger.Infof("Init watchdog with config file:\n %v \n", CustomConfig)
@@ -119,4 +124,25 @@ func InitWebhookConfig() {
 	WebhooksConfig = &util.WebhookConfig{
 		Webhooks: CustomConfig.Alert.Webhook,
 	}
+}
+
+func setDefaultValueForAuth(cfg model.YamlConfig) model.YamlConfig {
+	if cfg.Auth.Username == "" {
+		cfg.Auth.Username = "cess"
+	}
+
+	if cfg.Auth.Password == "" {
+		cfg.Auth.Password = "Cess123456"
+	}
+
+	if cfg.Auth.JWTSecretKey == "" {
+		cfg.Auth.JWTSecretKey = time.Now().Format("20060102150405")
+		log.Logger.Info("Generated a random JWT secret key cause it's empty in config file.")
+	}
+
+	if !(cfg.Auth.TokenExpiry > 0 && cfg.Auth.TokenExpiry <= 24) {
+		cfg.Auth.TokenExpiry = 1
+	}
+
+	return cfg
 }

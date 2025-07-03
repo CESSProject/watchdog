@@ -33,7 +33,7 @@ alert:
       - example1@gmail.com
       - example2@outlook.com
 auth:
-  username: "admin" # env: WATCHDOG_USERNAME
-  password: "passwd" # env: WATCHDOG_PASSWORD
+  username: "admin" # env: WATCHDOG_USERNAME, default: cess
+  password: "passwd" # env: WATCHDOG_PASSWORD, default: Cess123456
   jwt_secret_key: "your-random-secret-key" # env: WATCHDOG_JWT_SECRET
   token_expiry: 1  # 1 hour # env: WATCHDOG_TOKEN_EXPIRY
