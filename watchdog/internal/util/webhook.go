@@ -179,32 +179,32 @@ func (conf *WebhookConfig) SendAlertToWebhook(content model.AlertContent) (err e
 }
 
 func buildMessage(content model.AlertContent) (string, error) {
-	if content.AlertTime == "" && content.HostIp == "" && content.Description == "" {
+	if content.AlertTime == "" || content.HostIp == "" || content.Description == "" {
 		return "", fmt.Errorf("cant build webhook msg with insufficient content")
 	}
 	var messageParts []string
-	messageParts = append(messageParts, "CESS Information")
+	messageParts = append(messageParts, "CESS Watchdog Alert")
 
 	if content.AlertTime != "" {
-		messageParts = append(messageParts, "\n Alert Time: "+content.AlertTime)
+		messageParts = append(messageParts, "\nAlert Time: "+content.AlertTime)
 	}
 	if content.HostIp != "" {
-		messageParts = append(messageParts, "\n IP: "+content.HostIp)
+		messageParts = append(messageParts, "\nIP: "+content.HostIp)
 	}
 	if content.Description != "" {
-		messageParts = append(messageParts, "\n Message: "+content.Description)
+		messageParts = append(messageParts, "\nMessage: "+content.Description)
 	}
 	if content.DetailUrl != "" {
-		messageParts = append(messageParts, "\n Url: "+content.DetailUrl)
+		messageParts = append(messageParts, "\nUrl: "+content.DetailUrl)
 	}
 	if content.SignatureAcc != "" {
-		messageParts = append(messageParts, "\n Signature Account: "+content.SignatureAcc)
+		messageParts = append(messageParts, "\nSignature Account: "+content.SignatureAcc)
 	}
 	if content.ContainerID != "" {
-		messageParts = append(messageParts, "\n Container ID: "+content.ContainerID)
+		messageParts = append(messageParts, "\nContainer ID: "+content.ContainerID)
 	}
 	if content.BlockNumber != 0 {
-		messageParts = append(messageParts, "\n Block Number: "+strconv.FormatUint(content.BlockNumber, 10))
+		messageParts = append(messageParts, "\nBlock Number: "+strconv.FormatUint(content.BlockNumber, 10))
 	}
-	return strings.Join(messageParts, ", "), nil
+	return strings.Join(messageParts, ""), nil
 }
