@@ -1,4 +1,4 @@
-FROM golang:1.23-alpine3.18 AS builder
+FROM golang:1.23-alpine AS builder
 
 WORKDIR /opt/cess/watchdog
 
