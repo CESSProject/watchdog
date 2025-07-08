@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"github.com/CESSProject/watchdog/constant"
 	"github.com/CESSProject/watchdog/internal/log"
 	"github.com/CESSProject/watchdog/internal/model"
 	"github.com/CESSProject/watchdog/internal/util"
@@ -16,7 +15,6 @@ import (
 	"net"
 	"strconv"
 	"strings"
-	"time"
 )
 
 type DockerCli interface {
@@ -70,7 +68,7 @@ func NewClient(host model.HostItem) (*Client, error) {
 func (cli *Client) ListContainers(ctx context.Context, host string) ([]model.Container, error) {
 	list, err := cli.dockerCli.ContainerList(ctx, types.ContainerListOptions{})
 	if err != nil {
-		go NormalAlert(host, "Fail to call api from docker daemon")
+		go doAlert(host, "Failed to call list container api from docker daemon", "", "", GlobalBlockDataManager.latestBlock)
 		return nil, err
 	}
 	containers := make([]model.Container, len(list))
@@ -100,14 +98,14 @@ func (cli *Client) ListContainers(ctx context.Context, host string) ([]model.Con
 func (cli *Client) SetContainerStats(ctx context.Context, cid string, host string) (model.ContainerStat, error) {
 	response, err := cli.dockerCli.ContainerStats(ctx, cid, false)
 	if err != nil {
-		log.Logger.Errorf("Fail to get container stats: %v", err)
-		go NormalAlert(host, "Fail to call api from docker daemon")
+		log.Logger.Errorf("Failed to get container stats: %v", err)
+		go doAlert(host, "Failed to call container stats api from docker daemon", "", cid, GlobalBlockDataManager.latestBlock)
 		return model.ContainerStat{}, nil
 	}
 	defer func(Body io.ReadCloser) {
 		err = Body.Close()
 		if err != nil {
-			log.Logger.Errorf("Fail to close io reader: %v", err)
+			log.Logger.Errorf("Failed to close io reader: %v", err)
 		}
 	}(response.Body)
 	var v *types.StatsJSON
@@ -151,12 +149,12 @@ func calculateCPUPercentUnix(v *types.StatsJSON) string {
 func (cli *Client) ExeCommand(ctx context.Context, cid string, config types.ExecConfig, host string) ([]byte, error) {
 	execId, err := cli.dockerCli.ContainerExecCreate(ctx, cid, config)
 	if err != nil {
-		go NormalAlert(host, "Fail to call api from docker daemon")
+		go doAlert(host, "Failed to call ContainerExecCreate api from docker daemon", "", cid, GlobalBlockDataManager.latestBlock)
 		return nil, errors.Wrap(err, "exe cmd in container error")
 	}
 	resp, err := cli.dockerCli.ContainerExecAttach(ctx, execId.ID, types.ExecStartCheck{})
 	if err != nil {
-		go NormalAlert(host, "Fail to call api from docker daemon")
+		go doAlert(host, "Failed to call ContainerExecAttach api from docker daemon", "", cid, GlobalBlockDataManager.latestBlock)
 		return nil, errors.Wrap(err, "exe cmd in container error")
 	}
 	defer resp.Close()
@@ -171,17 +169,4 @@ func (cli *Client) ExeCommand(ctx context.Context, cid string, config types.Exec
 
 func (cli *Client) Ping(ctx context.Context) (types.Ping, error) {
 	return cli.dockerCli.Ping(ctx)
-}
-
-func NormalAlert(hostIP string, message string) {
-	content := model.AlertContent{
-		AlertTime:   time.Now().Format(constant.TimeFormat),
-		HostIp:      hostIP,
-		Description: message,
-	}
-	if WebhooksConfig != nil {
-		if err := WebhooksConfig.SendAlertToWebhook(content); err != nil {
-			log.Logger.Error("Failed to send alert webhook:", err)
-		}
-	}
 }

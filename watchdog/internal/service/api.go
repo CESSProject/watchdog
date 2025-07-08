@@ -1,10 +1,12 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"github.com/CESSProject/watchdog/constant"
 	"github.com/CESSProject/watchdog/internal/core"
 	"github.com/CESSProject/watchdog/internal/log"
+	"github.com/CESSProject/watchdog/internal/middleware"
 	"github.com/CESSProject/watchdog/internal/model"
 	"github.com/CESSProject/watchdog/internal/util"
 	"github.com/gin-gonic/gin"
@@ -22,21 +24,26 @@ import (
 // @Description Service HealthCheck
 // @Tags HealthCheck
 // @Success 200 {string} ok
-// @Router / [get]
+// @Router /health_check [get]
 func healthCheck(c *gin.Context) {
 	c.JSON(http.StatusOK, 0)
 }
 
 // watchdog godoc
-// @Description  List miners in each host
-// @Tags         List Miners by host
+// @Description  List storage node on host
+// @Tags         List storage node by host
 // @Produce      json
 // @Param        host   query  string   false  "Host IP"
 // @Success      200  {object}  []HostInfoVO
 // @Router       /list  [get]
 func list(c *gin.Context) {
 	host := c.Query("host")
-	data, _ := getListByCondition(host)
+	data, err := getListByHost(host)
+	if err != nil {
+		log.Logger.Errorf("Failed to get list by host %s: %v", host, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve host data"})
+		return
+	}
 	c.JSON(http.StatusOK, data)
 }
 
@@ -46,7 +53,7 @@ func list(c *gin.Context) {
 // @Success      200  {object}  []string
 // @Router       /hosts [get]
 func getHosts(c *gin.Context) {
-	res := make([]string, 0)
+	res := make([]string, 0, len(core.Clients))
 	for hostIP := range core.Clients {
 		res = append(res, hostIP)
 	}
@@ -56,17 +63,17 @@ func getHosts(c *gin.Context) {
 
 // watchdog godoc
 // @Description  Get Clients Status
-// @Tags         Get Hosts
+// @Tags         Get Clients Status
 // @Success      200  {object} map[string]string
 // @Router       /clients [get]
 func getClientsStatus(c *gin.Context) {
-	res := map[string]string{}
+	res := make(map[string]string, len(core.Clients))
 	for _, client := range core.Clients {
+		status := "Sleeping"
 		if client.Updating {
-			res[client.Host] = "Running"
-		} else {
-			res[client.Host] = "Sleep"
+			status = "Running"
 		}
+		res[client.Host] = status
 	}
 	c.JSON(http.StatusOK, res)
 }
@@ -87,8 +94,8 @@ func setConfig(c *gin.Context) {
 	}
 	configTemp, err := util.LoadConfigFile(constant.ConfPath)
 	if err != nil {
-		log.Logger.Errorf("Fail to load %s", constant.ConfPath)
-		c.JSON(http.StatusInternalServerError, gin.H{"message": fmt.Sprintf("Fail to load config file from %s", constant.ConfPath)})
+		log.Logger.Errorf("Failed to load file from %s", constant.ConfPath)
+		c.JSON(http.StatusInternalServerError, gin.H{"message": fmt.Sprintf("Failed to load config file from %s", constant.ConfPath)})
 		return
 	}
 	// remove old config
@@ -102,13 +109,23 @@ func setConfig(c *gin.Context) {
 	util.AddFields(configTemp, newConfig)
 	err = util.SaveConfigFile(constant.ConfPath, configTemp)
 	if err != nil {
-		log.Logger.Errorf("Fail to save file to: %v", constant.ConfPath)
-		c.JSON(http.StatusInternalServerError, gin.H{"message": fmt.Sprintf("Fail to save config file to %s", constant.ConfPath)})
+		log.Logger.Errorf("Failed to save file to: %v", constant.ConfPath)
+		c.JSON(http.StatusInternalServerError, gin.H{"message": fmt.Sprintf("Failed to save config file to %s", constant.ConfPath)})
 		return
 	}
 	log.Logger.Infof("Save new config %v to: %s", configTemp, constant.ConfPath)
-	go runWithNewConf()
-	c.JSON(http.StatusOK, gin.H{"message": "update Watchdog config success"})
+
+	bgCtx := context.Background()
+	timeout := time.Duration(core.CustomConfig.ScrapeInterval) * time.Second
+	if timeout <= 0 || timeout > 60*time.Minute {
+		timeout = 60 * time.Minute
+	}
+	ctx, cancel := context.WithTimeout(bgCtx, timeout)
+	go func() {
+		defer cancel() // make sure cancel ctx after runWithNewConf
+		runWithNewConf(ctx)
+	}()
+	c.JSON(http.StatusOK, gin.H{"message": "update Watchdog config success, please wait for a while for the change to take effect"})
 }
 
 // watchdog godoc
@@ -128,6 +145,8 @@ func getConfig(c *gin.Context) {
 	}
 	conf.Alert.Email.SenderAddr = replaceFirstThreeChars(conf.Alert.Email.SenderAddr)
 	conf.Alert.Email.SmtpPassword = "******"
+	conf.Auth.Password = "******"
+	conf.Auth.JWTSecretKey = "******"
 	c.JSON(http.StatusOK, conf)
 }
 
@@ -137,7 +156,7 @@ func getConfig(c *gin.Context) {
 // @Produce      json
 // @Success      200 {object} bool
 // @Router       /toggle [get]
-func getToggle(c *gin.Context) {
+func getAlertToggle(c *gin.Context) {
 	status := core.CustomConfig.Alert.Enable
 	c.JSON(http.StatusOK, status)
 }
@@ -150,7 +169,7 @@ func getToggle(c *gin.Context) {
 // @Param        model.AlertToggle body model.AlertToggle true "Alert Toggle Status"
 // @Success      200 {object} model.AlertToggle
 // @Router       /toggle [post]
-func setToggle(c *gin.Context) {
+func setAlertToggle(c *gin.Context) {
 	var alertToggle = model.AlertToggle{}
 	if err := c.ShouldBindJSON(&alertToggle); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -160,14 +179,14 @@ func setToggle(c *gin.Context) {
 	conf.Alert.Enable = alertToggle.Status
 	data, err := yaml.Marshal(conf)
 	if err != nil {
-		log.Logger.Errorf("Fail to parse conf: %v", conf)
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Fail to parse conf"})
+		log.Logger.Errorf("Failed to parse conf: %v", conf)
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to parse conf"})
 		return
 	}
 	err = os.WriteFile(constant.ConfPath, data, 0644)
 	if err != nil {
-		log.Logger.Errorf("Fail to save file to: %v", constant.ConfPath)
-		c.JSON(http.StatusInternalServerError, gin.H{"message": fmt.Sprintf("Fail to save config file to %s", constant.ConfPath)})
+		log.Logger.Errorf("Failed to save file to: %v", constant.ConfPath)
+		c.JSON(http.StatusInternalServerError, gin.H{"message": fmt.Sprintf("Failed to save config file to %s", constant.ConfPath)})
 		return
 	}
 	core.CustomConfig.Alert.Enable = alertToggle.Status
@@ -180,7 +199,7 @@ type HostInfoVO struct {
 	MinerInfoList []core.MinerInfo
 }
 
-func getListByCondition(hostIp string) ([]HostInfoVO, error) {
+func getListByHost(hostIp string) ([]HostInfoVO, error) {
 	var res []HostInfoVO
 	var err error
 	keys := make([]string, 0, len(core.Clients))
@@ -260,39 +279,52 @@ func splitURLByTopLevelDomain(inputURL string) string {
 	return res
 }
 
-func runWithNewConf() {
+func runWithNewConf(ctx context.Context) {
 	for key := range core.Clients {
 		core.Clients[key].Active = false
 	}
-	try := 0
-	for {
-		// max scrapeInterval is 300, sleep time is 5s, 300/5=60
-		if try > 60 {
-			break
-		}
-		if canProceed() {
-			err := core.InitWatchdogConfig()
-			if err != nil {
+
+	const maxRetries = 600
+	const retryInterval = 6 * time.Second
+
+	for try := 0; try < maxRetries; try++ {
+		select {
+		case <-ctx.Done():
+			log.Logger.Warn("Context cancelled while trying to run with new config")
+			return
+		default:
+			if canProceed() {
+				if err := reloadConfiguration(); err != nil {
+					log.Logger.Errorf("Failed to reload configuration: %v", err)
+					return
+				}
+				log.Logger.Info("Run with new config successfully")
 				return
 			}
-			core.InitSmtpConfig()
-			core.InitWebhookConfig()
-			err = core.InitWatchdogClients(core.CustomConfig)
-			if err != nil {
-				log.Logger.Fatalf("Init CESS Node Monitor Service With New Conf Failed: %v", err)
-			}
-			err = core.RunWatchdogClients(core.CustomConfig)
-			if err != nil {
-				log.Logger.Fatalf("Fail to run with new clients: %v", err)
-			}
-			break
-		} else {
-			log.Logger.Infof("Run with new config failed, Some watchdog clients might running, retrying (%d/%d)", try+1, 60)
+			log.Logger.Infof("Run with new config failed, Some watchdog clients might running, retrying (%d/%d)", try+1, maxRetries)
+			time.Sleep(retryInterval)
 		}
-		try++
-		time.Sleep(time.Duration(5) * time.Second)
 	}
-	log.Logger.Info("Run with new config success")
+	log.Logger.Warn("Failed to run with new config after maximum retries")
+}
+
+func reloadConfiguration() error {
+	if err := core.InitWatchdogConfig(); err != nil {
+		return fmt.Errorf("failed to init watchdog config: %w", err)
+	}
+
+	core.InitSmtpConfig()
+	core.InitWebhookConfig()
+
+	if err := core.InitWatchdogClients(core.CustomConfig); err != nil {
+		return fmt.Errorf("failed to init watchdog clients: %w", err)
+	}
+
+	if err := core.RunWatchdogClients(core.CustomConfig); err != nil {
+		return fmt.Errorf("failed to run watchdog clients: %w", err)
+	}
+
+	return nil
 }
 
 func canProceed() bool {
@@ -302,4 +334,38 @@ func canProceed() bool {
 		}
 	}
 	return true
+}
+
+type LoginRequest struct {
+	Username string `json:"username" binding:"required"`
+	Password string `json:"password" binding:"required"`
+}
+
+type LoginResponse struct {
+	Token string `json:"token"`
+}
+
+func login(cfg *model.YamlConfig) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var req LoginRequest
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
+			return
+		}
+
+		// Validate credentials
+		if req.Username != cfg.Auth.Username || req.Password != cfg.Auth.Password {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid username or password"})
+			return
+		}
+
+		// Generate token
+		token, err := middleware.GenerateToken(req.Username, cfg)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
+			return
+		}
+
+		c.JSON(http.StatusOK, LoginResponse{Token: token})
+	}
 }

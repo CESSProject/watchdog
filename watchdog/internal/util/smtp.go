@@ -32,7 +32,7 @@ func (conf *SmtpConfig) SendMail(content model.AlertContent) (err error) {
 
 	m := gomail.NewMessage()
 	m.SetHeader("From", conf.SenderAddr)
-	m.SetHeader("Subject: Storage Miner Status Alert!")
+	m.SetHeader("Subject: Storage Node Status Alert!")
 	m.SetBody("text/html", body.String())
 	d := gomail.NewDialer(conf.SmtpUrl, conf.SmtpPort, conf.SenderAddr, conf.SmtpPassword)
 	for _, receiver := range conf.Receiver {

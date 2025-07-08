@@ -1,19 +1,19 @@
-# external: run with 0.0.0.0 or 127.0.0.1
+# external: run with 0.0.0.0 or 127.0.0.1, env: WATCHDOG_IS_EXTERNAL
 external: true
-# watchdog server listen http port at: 13081
+# watchdog server listen http port at: 13081, env: WATCHDOG_PORT
 port: 13081
-# the interval of query data from chain for each miner, 1800 <= scrapeInterval <= 3600
+# the interval of query data from chain for each miner, 1800 <= scrapeInterval <= 3600, env: WATCHDOG_SCRAPE_INTERVAL
 scrapeInterval: 1800
 hosts:
   - ip: 127.0.0.1
     # make sure docker daemon listen at 2375: https://docs.docker.com/config/daemon/remote-access/
-    # warning: docker daemon run with external mode: 0.0.0.0 is dangerous
+    # warning: do not run docker daemon with 0.0.0.0 without any protection
     port: 2375
     # Configure remote access for Docker daemon must use tls to make sure mnemonic safe when do network transmission
     # set ca/crt/key path if the ip no belongs to [ 127.x, 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 ]
   - ip: 1.1.1.1
     # make sure docker daemon tls listen at 2376: https://docs.docker.com/engine/security/protect-access/
-    # warning: tls is not 100% safe
+    # warning: tls ≠ security
     port: 2376
     ca_path: /opt/cess/watchdog/tls/1.1.1.1-ca.pem
     cert_path: /opt/cess/watchdog/tls/1.1.1.1-cert.pem
@@ -26,9 +26,14 @@ alert:
     - https://discordapp.com/api/webhooks/XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
   email:
     smtp_endpoint: smtp.example.com
-    smtp_port: 80
+    smtp_port: 465
     smtp_account: myservice@cess.network
     smtp_password: my_pwd
     receiver:
       - example1@gmail.com
       - example2@outlook.com
+auth:
+  username: "admin" # env: WATCHDOG_USERNAME, default: cess
+  password: "passwd" # env: WATCHDOG_PASSWORD, default: Cess123456
+  jwt_secret_key: "your-random-secret-key" # env: WATCHDOG_JWT_SECRET
+  token_expiry: 1  # 1 hour # env: WATCHDOG_TOKEN_EXPIRY

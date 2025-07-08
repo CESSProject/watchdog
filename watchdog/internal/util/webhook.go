@@ -8,6 +8,7 @@ import (
 	"github.com/CESSProject/watchdog/internal/log"
 	"github.com/CESSProject/watchdog/internal/model"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -178,23 +179,32 @@ func (conf *WebhookConfig) SendAlertToWebhook(content model.AlertContent) (err e
 }
 
 func buildMessage(content model.AlertContent) (string, error) {
-	if content.AlertTime == "" && content.HostIp == "" && content.ContainerName == "" && content.Description == "" {
-		return "", fmt.Errorf("no alert content provided")
+	if content.AlertTime == "" || content.HostIp == "" || content.Description == "" {
+		return "", fmt.Errorf("cant build webhook msg with insufficient content")
 	}
 	var messageParts []string
-	messageParts = append(messageParts, "CESS Information")
+	messageParts = append(messageParts, "CESS Watchdog Alert")
 
 	if content.AlertTime != "" {
-		messageParts = append(messageParts, "Alert Time: "+content.AlertTime)
+		messageParts = append(messageParts, "\nAlert Time: "+content.AlertTime)
 	}
 	if content.HostIp != "" {
-		messageParts = append(messageParts, "Host: "+content.HostIp)
-	}
-	if content.ContainerName != "" {
-		messageParts = append(messageParts, "Miner Name: "+content.ContainerName)
+		messageParts = append(messageParts, "\nIP: "+content.HostIp)
 	}
 	if content.Description != "" {
-		messageParts = append(messageParts, "Description: "+content.Description)
+		messageParts = append(messageParts, "\nMessage: "+content.Description)
 	}
-	return strings.Join(messageParts, ", "), nil
+	if content.DetailUrl != "" {
+		messageParts = append(messageParts, "\nUrl: "+content.DetailUrl)
+	}
+	if content.SignatureAcc != "" {
+		messageParts = append(messageParts, "\nSignature Account: "+content.SignatureAcc)
+	}
+	if content.ContainerID != "" {
+		messageParts = append(messageParts, "\nContainer ID: "+content.ContainerID)
+	}
+	if content.BlockNumber != 0 {
+		messageParts = append(messageParts, "\nBlock Number: "+strconv.FormatUint(content.BlockNumber, 10))
+	}
+	return strings.Join(messageParts, ""), nil
 }

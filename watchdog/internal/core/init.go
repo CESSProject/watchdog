@@ -8,6 +8,9 @@ import (
 	"gopkg.in/yaml.v3"
 	"math"
 	"os"
+	"strconv"
+	"strings"
+	"time"
 )
 
 type MinerInfoVO struct {
@@ -34,9 +37,40 @@ func Run() {
 	}
 	err = RunWatchdogClients(CustomConfig)
 	if err != nil {
-		log.Logger.Fatalf("Run CESS Node Monitor failed: %v", err)
+		log.Logger.Fatalf("Run CESS Storage Monitor failed: %v", err)
 		return
 	}
+}
+
+func loadConfigFromEnv(cfg model.YamlConfig) model.YamlConfig {
+	if port := os.Getenv("WATCHDOG_PORT"); port != "" {
+		if port, err := strconv.Atoi(port); err == nil {
+			cfg.Port = port
+		}
+	}
+	if external := os.Getenv("WATCHDOG_IS_EXTERNAL"); external != "" {
+		cfg.External = strings.ToLower(external) == "true"
+	}
+	if scrapeInterval := os.Getenv("WATCHDOG_SCRAPE_INTERVAL"); scrapeInterval != "" {
+		if interval, err := strconv.Atoi(scrapeInterval); err == nil {
+			cfg.ScrapeInterval = interval
+		}
+	}
+	if username := os.Getenv("WATCHDOG_USERNAME"); username != "" {
+		cfg.Auth.Username = username
+	}
+	if password := os.Getenv("WATCHDOG_PASSWORD"); password != "" {
+		cfg.Auth.Password = password
+	}
+	if jwtKey := os.Getenv("WATCHDOG_JWT_SECRET"); jwtKey != "" {
+		cfg.Auth.JWTSecretKey = jwtKey
+	}
+	if expiryStr := os.Getenv("WATCHDOG_TOKEN_EXPIRY"); expiryStr != "" {
+		if expiry, err := strconv.Atoi(expiryStr); err == nil {
+			cfg.Auth.TokenExpiry = expiry
+		}
+	}
+	return cfg
 }
 
 func InitWatchdogConfig() error {
@@ -55,9 +89,14 @@ func InitWatchdogConfig() error {
 		log.Logger.Fatalf("Error when parse file from %s: %v", constant.ConfPath, err)
 		return err
 	}
+	CustomConfig = loadConfigFromEnv(CustomConfig) // env priority over config file
+
+	// set default value for CustomConfig.Auth
+	CustomConfig = setDefaultValueForAuth(CustomConfig)
+
 	// 1800 <= ScrapeInterval <= 3600
 	CustomConfig.ScrapeInterval = int(math.Max(1800, math.Min(float64(CustomConfig.ScrapeInterval), 3600)))
-	log.Logger.Infof("Init watchdog with config file: %v \n", CustomConfig)
+	log.Logger.Infof("Init watchdog with config file:\n %v \n", CustomConfig)
 	return nil
 }
 
@@ -85,4 +124,25 @@ func InitWebhookConfig() {
 	WebhooksConfig = &util.WebhookConfig{
 		Webhooks: CustomConfig.Alert.Webhook,
 	}
+}
+
+func setDefaultValueForAuth(cfg model.YamlConfig) model.YamlConfig {
+	if cfg.Auth.Username == "" {
+		cfg.Auth.Username = "cess"
+	}
+
+	if cfg.Auth.Password == "" {
+		cfg.Auth.Password = "Cess123456"
+	}
+
+	if cfg.Auth.JWTSecretKey == "" {
+		cfg.Auth.JWTSecretKey = time.Now().Format("20060102150405")
+		log.Logger.Info("Generated a random JWT secret key cause it's empty in config file.")
+	}
+
+	if !(cfg.Auth.TokenExpiry > 0 && cfg.Auth.TokenExpiry <= 24) {
+		cfg.Auth.TokenExpiry = 1
+	}
+
+	return cfg
 }

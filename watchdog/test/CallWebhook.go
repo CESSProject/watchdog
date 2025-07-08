@@ -11,14 +11,14 @@ import (
 
 func CallWebhook() error {
 	content := model.AlertContent{
-		AlertTime:     time.Now().Format(constant.TimeFormat),
-		HostIp:        "127.0.0.1",
-		ContainerName: "miner1",
-		Description:   "The Storage Miner is not a positive status or get punishment",
+		AlertTime:   time.Now().Format(constant.TimeFormat),
+		HostIp:      "127.0.0.1",
+		ContainerID: "miner1",
+		Description: "The Storage Miner is not a positive status or get punishment",
 	}
 	sendData := `{
 		"msg_type": "text",
-		"content": {"text": "` + "CESS Information: " + " Alert Time: " + content.AlertTime + ", Host: " + content.HostIp + ", Miner Name: " + content.ContainerName + ", Description: " + content.Description + `"}
+		"content": {"text": "` + "CESS Information: " + " Alert Time: " + content.AlertTime + ", Host: " + content.HostIp + ", cID: " + content.ContainerID + ", Description: " + content.Description + `"}
 	}`
 	req, err := http.NewRequest("POST", "https://xxxx", strings.NewReader(sendData))
 	req.Header.Set("Content-Type", "application/json")
